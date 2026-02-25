@@ -1,73 +1,141 @@
-# React + TypeScript + Vite
+# Frontend Assignment — Tree View + Kanban Board
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A production-grade React + TypeScript project built with Vite, featuring two polished UI modules:
 
-Currently, two official plugins are available:
+- **Tree View Project** (hierarchical data editor with lazy loading and DnD)
+- **Kanban Board Project** (multi-column board with inline editing and DnD)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+The app starts with a home screen that lets you open either project.
 
-## React Compiler
+## Live Routes
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Route | Page |
+|------|------|
+| `/` | Home (project selection cards) |
+| `/tree` | Tree View project |
+| `/kanban` | Kanban Board project |
 
-## Expanding the ESLint configuration
+## Tech Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- React + TypeScript
+- Vite
+- Tailwind CSS
+- DnD Kit (`@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`)
+- React Router DOM
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+No heavy UI framework is used.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Key Features
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 1) Tree View
+
+- Expand/collapse with smooth animated transitions
+- Chevron rotation animation
+- Professional dotted connector lines for nested tree structure
+- Add node (root or child) with inline input
+- Edit node name on double-click
+- Delete node + full subtree with custom confirmation modal
+- Lazy loading simulation on first expand (with spinner + shimmer skeleton)
+- Drag and drop:
+  - reorder within same level
+  - move across parents
+  - hierarchy integrity protection (prevents invalid self-descendant moves)
+- Drag overlay preview + highlighted drop targets
+
+### 2) Kanban Board
+
+- Default columns: **Todo**, **In Progress**, **Done**
+- Add card inline per column
+- Edit card title inline (Enter save, Escape cancel, blur save)
+- Delete card action
+- Drag and drop:
+  - reorder inside same column
+  - move cards across columns
+  - drag overlay preview + smooth interactions
+- Responsive layout:
+  - mobile: stacked
+  - tablet: 2 columns
+  - desktop: 3 columns
+
+### 3) Global UX
+
+- Dark mode with toggle and `localStorage` persistence
+- Shared button variants (`primary`, `secondary`, `destructive`)
+- Consistent spacing, typography, transitions, and shadows
+- Page-level fade-in transitions
+
+## Project Structure
+
+```text
+src/
+  components/
+    tree/
+    kanban/
+    ui/
+  pages/
+  types/
+  utils/
+  App.tsx
+  main.tsx
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Getting Started
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Prerequisites
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- Node.js 18+ (20+ recommended)
+- npm
+
+### Install
+
+```bash
+npm install
 ```
+
+### Run Development Server
+
+```bash
+npm run dev
+```
+
+### Build for Production
+
+```bash
+npm run build
+```
+
+### Preview Production Build
+
+```bash
+npm run preview
+```
+
+## Architecture Notes
+
+- Tree and Kanban are separated into reusable component groups.
+- Strong TypeScript domain models live in `src/types`.
+- Tree operations (`findNode`, `addNode`, `removeNode`, `updateNode`, `moveNode`) are centralized in utility functions.
+- UI primitives (Button, ConfirmModal, ThemeToggle) are reusable and style-consistent.
+- State updates are immutable and intentionally scoped.
+
+## Accessibility & UX Behaviors
+
+- Keyboard-friendly inline editing (Enter/Escape/blur)
+- Visual focus rings for form controls and buttons
+- Hover and drag visual affordances for discoverability
+
+## Scripts
+
+- `npm run dev` — start local dev server
+- `npm run build` — type-check + production build
+- `npm run preview` — preview production output
+
+## Future Enhancements (Optional)
+
+- Add automated tests (unit + interaction)
+- Persist tree/kanban state to backend or local storage
+- Add undo/redo for drag and edit actions
+
+---
+
+If you’re reviewing this as an interview project, start at `/` and test both modules end-to-end including editing, drag-and-drop, lazy loading, and theme switching.
