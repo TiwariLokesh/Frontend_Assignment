@@ -1,7 +1,9 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Column } from '../../types/kanban';
+import type { Column } from '../../types/kanban';
 import KanbanCard from './KanbanCard';
+import Button from '../ui/Button';
+import { cn } from '../../utils/cn';
 
 type KanbanColumnProps = {
   column: Column;
@@ -41,20 +43,16 @@ function KanbanColumn({
   const columnDrop = useDroppable({ id: `column:${column.id}` });
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-slate-100 shadow-premium">
+    <section className="min-w-[280px] rounded-2xl border border-slate-200 bg-slate-100 shadow-md transition-all duration-200 hover:shadow-lg dark:border-slate-700 dark:bg-slate-900/60">
       <header className={`${colorClass} flex items-center justify-between rounded-t-2xl px-4 py-3 text-white`}>
-        <h2 className="text-lg font-bold">{column.title}</h2>
+        <h2 className="text-lg font-semibold tracking-wide">{column.title}</h2>
         <span className="rounded-md bg-white/20 px-2 py-0.5 text-xs font-semibold">{column.cards.length}</span>
       </header>
 
       <div className="p-4">
-        <button
-          type="button"
-          onClick={() => onStartAdd(column.id)}
-          className="mb-3 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-        >
+        <Button variant="secondary" fullWidth className="mb-3 justify-start" onClick={() => onStartAdd(column.id)}>
           + Add Card
-        </button>
+        </Button>
 
         {isAdding && (
           <input
@@ -70,17 +68,17 @@ function KanbanColumn({
                 onCancelAdd();
               }
             }}
-            className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none ring-blue-300 focus:ring"
+            className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none ring-blue-300 transition-all focus:ring-2 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
             placeholder="Card title"
           />
         )}
 
         <div
           ref={columnDrop.setNodeRef}
-          className={[
-            'min-h-20 space-y-3 rounded-lg p-1 transition',
-            columnDrop.isOver ? 'bg-blue-100/70' : '',
-          ].join(' ')}
+          className={cn(
+            'min-h-20 space-y-3 rounded-lg p-1 transition-all duration-200',
+            columnDrop.isOver && 'bg-blue-100/70 ring-1 ring-blue-300 dark:bg-blue-900/20 dark:ring-blue-500/50'
+          )}
         >
           <SortableContext
             items={column.cards.map((card) => `card:${card.id}`)}

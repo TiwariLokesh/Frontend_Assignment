@@ -1,7 +1,16 @@
-import { useMemo, useState } from 'react';
-import { DndContext, DragEndEvent, DragStartEvent, PointerSensor, useDroppable, useSensor, useSensors } from '@dnd-kit/core';
+import { useCallback, useMemo, useState } from 'react';
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core';
 import TreeNodeItem from './TreeNodeItem';
-import { TreeNode } from '../../types/tree';
+import type { TreeNode } from '../../types/tree';
 import {
   addNode,
   findNode,
@@ -12,6 +21,9 @@ import {
   removeNode,
   updateNode,
 } from '../../utils/treeUtils';
+import ConfirmModal from '../ui/ConfirmModal';
+import Button from '../ui/Button';
+import { cn } from '../../utils/cn';
 
 type TreeViewProps = {
   nodes: TreeNode[];
@@ -37,19 +49,20 @@ function TreeView({ nodes, onChange }: TreeViewProps) {
   const [addingValue, setAddingValue] = useState('');
 
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [deleteCandidateId, setDeleteCandidateId] = useState<string | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const rootDrop = useDroppable({ id: 'children:root' });
 
-  const expandNode = (nodeId: string) => {
+  const expandNode = useCallback((nodeId: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
       next.add(nodeId);
       return next;
     });
-  };
+  }, []);
 
-  const handleToggle = (nodeId: string) => {
+  const handleToggle = useCallback((nodeId: string) => {
     const node = findNode(nodes, nodeId);
     if (!node) {
       return;
@@ -99,16 +112,16 @@ function TreeView({ nodes, onChange }: TreeViewProps) {
         return next;
       });
     }, 1000);
-  };
+  }, [expandNode, expandedIds, loadedLazyIds, nodes, onChange]);
 
-  const resetInlineStates = () => {
+  const resetInlineStates = useCallback(() => {
     setAddingFor(null);
     setAddingValue('');
     setEditingId(null);
     setEditingValue('');
-  };
+  }, []);
 
-  const handleSaveAdd = (parentId: string | null) => {
+  const handleSaveAdd = useCallback((parentId: string | null) => {
     const name = addingValue.trim();
     if (!name) {
       setAddingFor(null);
@@ -129,9 +142,9 @@ function TreeView({ nodes, onChange }: TreeViewProps) {
 
     setAddingFor(null);
     setAddingValue('');
-  };
+  }, [addingValue, expandNode, onChange]);
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = useCallback(() => {
     const name = editingValue.trim();
     if (!editingId || !name) {
       resetInlineStates();
@@ -147,34 +160,61 @@ function TreeView({ nodes, onChange }: TreeViewProps) {
 
     setEditingId(null);
     setEditingValue('');
-  };
+  }, [editingId, editingValue, onChange, resetInlineStates]);
 
-  const handleDelete = (nodeId: string) => {
-    if (!window.confirm('Delete this node and all of its children?')) {
+  const handleDeleteRequest = useCallback((nodeId: string) => {
+    setDeleteCandidateId(nodeId);
+  }, []);
+
+  const confirmDelete = useCallback(() => {
+    if (!deleteCandidateId) {
       return;
     }
 
-    onChange((prevNodes) => removeNode(prevNodes, nodeId));
+    const deletingId = deleteCandidateId;
+    setDeleteCandidateId(null);
+
+    onChange((prevNodes) => removeNode(prevNodes, deletingId));
 
     setExpandedIds((prev) => {
       const next = new Set(prev);
-      next.delete(nodeId);
+      next.delete(deletingId);
       return next;
     });
-  };
+  }, [deleteCandidateId, onChange]);
 
-  const parseId = (id: string, prefix: string) => (id.startsWith(prefix) ? id.slice(prefix.length) : null);
+  const parseId = useCallback((id: string, prefix: string) => (id.startsWith(prefix) ? id.slice(prefix.length) : null), []);
 
-  const handleDragStart = (event: DragStartEvent) => {
+  const handleStartEdit = useCallback((currentNode: TreeNode) => {
+    setEditingId(currentNode.id);
+    setEditingValue(currentNode.name);
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingId(null);
+    setEditingValue('');
+  }, []);
+
+  const handleStartAdd = useCallback((parentId: string) => {
+    setAddingFor(parentId);
+    setAddingValue('');
+  }, []);
+
+  const handleCancelAdd = useCallback(() => {
+    setAddingFor(null);
+    setAddingValue('');
+  }, []);
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
     const rawId = event.active.id;
     if (typeof rawId !== 'string') {
       return;
     }
 
     setActiveDragId(parseId(rawId, 'node:'));
-  };
+  }, [parseId]);
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
     setActiveDragId(null);
 
     const activeRaw = event.active.id;
@@ -237,24 +277,23 @@ function TreeView({ nodes, onChange }: TreeViewProps) {
 
       return moveNode(prevNodes, activeNodeId, targetParentId, targetIndex);
     });
-  };
+  }, [onChange, parseId]);
 
-  const sortedNodes = useMemo(() => nodes, [nodes]);
+  const activeNode = useMemo(() => (activeDragId ? findNode(nodes, activeDragId) : undefined), [activeDragId, nodes]);
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-premium">
+    <div className="rounded-2xl border border-slate-200 bg-white/95 p-5 shadow-premium transition-colors duration-300 dark:border-slate-700 dark:bg-slate-900/95">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-bold text-slate-800">Tree View</h2>
-        <button
-          type="button"
+        <h2 className="text-xl font-semibold tracking-wide text-slate-800 dark:text-slate-100">Tree View</h2>
+        <Button
+          variant="primary"
           onClick={() => {
             setAddingFor('root');
             setAddingValue('');
           }}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
         >
           + Add Root Node
-        </button>
+        </Button>
       </div>
 
       {addingFor === 'root' && (
@@ -273,7 +312,7 @@ function TreeView({ nodes, onChange }: TreeViewProps) {
                 setAddingValue('');
               }
             }}
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none ring-blue-300 focus:ring"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none ring-blue-300 transition-all focus:ring dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
             placeholder="Root node name"
           />
         </div>
@@ -282,16 +321,18 @@ function TreeView({ nodes, onChange }: TreeViewProps) {
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div
           ref={rootDrop.setNodeRef}
-          className={[
-            'relative min-h-20 rounded-xl border border-dashed border-slate-200 p-3 transition',
-            rootDrop.isOver ? 'border-blue-300 bg-blue-50/70' : 'bg-slate-50',
-          ].join(' ')}
+          className={cn(
+            'relative min-h-20 rounded-xl border border-dashed border-slate-300/80 p-3 transition-all duration-200 dark:border-slate-700',
+            rootDrop.isOver ? 'border-blue-300 bg-blue-50/70 dark:border-blue-500 dark:bg-blue-900/20' : 'bg-slate-50 dark:bg-slate-950/40'
+          )}
         >
-          {sortedNodes.map((node) => (
+          {nodes.map((node, index) => (
             <div key={node.id} className="mb-2 last:mb-0">
               <TreeNodeItem
                 node={node}
                 level={0}
+                isLastSibling={index === nodes.length - 1}
+                ancestorHasNext={[]}
                 expandedIds={expandedIds}
                 loadingIds={loadingIds}
                 activeDragId={activeDragId}
@@ -300,32 +341,39 @@ function TreeView({ nodes, onChange }: TreeViewProps) {
                 addingFor={addingFor}
                 addingValue={addingValue}
                 onToggle={handleToggle}
-                onStartEdit={(currentNode) => {
-                  setEditingId(currentNode.id);
-                  setEditingValue(currentNode.name);
-                }}
+                onStartEdit={handleStartEdit}
                 onEditValueChange={setEditingValue}
                 onSaveEdit={handleSaveEdit}
-                onCancelEdit={() => {
-                  setEditingId(null);
-                  setEditingValue('');
-                }}
-                onStartAdd={(parentId) => {
-                  setAddingFor(parentId);
-                  setAddingValue('');
-                }}
+                onCancelEdit={handleCancelEdit}
+                onStartAdd={handleStartAdd}
                 onAddValueChange={setAddingValue}
                 onSaveAdd={handleSaveAdd}
-                onCancelAdd={() => {
-                  setAddingFor(null);
-                  setAddingValue('');
-                }}
-                onDelete={handleDelete}
+                onCancelAdd={handleCancelAdd}
+                onDelete={handleDeleteRequest}
               />
             </div>
           ))}
         </div>
+
+        <DragOverlay>
+          {activeNode ? (
+            <div className="flex min-h-12 w-[260px] scale-[1.03] items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 opacity-90 shadow-xl dark:border-slate-600 dark:bg-slate-900">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-100 text-sm font-semibold text-sky-700 dark:bg-sky-900/70 dark:text-sky-200">
+                {(activeNode.name.slice(0, 1) || 'N').toUpperCase()}
+              </div>
+              <span className="truncate text-sm font-semibold text-slate-700 dark:text-slate-100">{activeNode.name}</span>
+            </div>
+          ) : null}
+        </DragOverlay>
       </DndContext>
+
+      <ConfirmModal
+        open={Boolean(deleteCandidateId)}
+        title="Delete node"
+        description="This will permanently remove the node and its full subtree."
+        onCancel={() => setDeleteCandidateId(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

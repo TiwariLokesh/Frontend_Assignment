@@ -1,5 +1,5 @@
-import { Column } from '../types/kanban';
-import { TreeNode } from '../types/tree';
+import type { Column } from '../types/kanban';
+import type { TreeNode } from '../types/tree';
 
 export const initialTreeData: TreeNode[] = [
   {

@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { useCallback, useMemo, useState } from 'react';
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { Column } from '../../types/kanban';
+import type { Card, Column } from '../../types/kanban';
 import KanbanColumn from './KanbanColumn';
+import { cn } from '../../utils/cn';
 
 type KanbanBoardProps = {
   columns: Column[];
@@ -23,13 +24,25 @@ function KanbanBoard({ columns, onChange }: KanbanBoardProps) {
 
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState('');
+  const [activeCardId, setActiveCardId] = useState<string | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
-  const findColumnByCardId = (allColumns: Column[], cardId: string) =>
-    allColumns.find((column) => column.cards.some((card) => card.id === cardId));
+  const findColumnByCardId = useCallback(
+    (allColumns: Column[], cardId: string) =>
+      allColumns.find((column) => column.cards.some((card) => card.id === cardId)),
+    []
+  );
 
-  const handleSaveAdd = (columnId: string) => {
+  const activeCard = useMemo(() => {
+    if (!activeCardId) {
+      return null;
+    }
+
+    return columns.flatMap((column) => column.cards).find((card) => card.id === activeCardId) ?? null;
+  }, [activeCardId, columns]);
+
+  const handleSaveAdd = useCallback((columnId: string) => {
     const title = addValue.trim();
     if (!title) {
       setAddingColumnId(null);
@@ -52,9 +65,9 @@ function KanbanBoard({ columns, onChange }: KanbanBoardProps) {
 
     setAddingColumnId(null);
     setAddValue('');
-  };
+  }, [addValue, onChange]);
 
-  const handleDeleteCard = (columnId: string, cardId: string) => {
+  const handleDeleteCard = useCallback((columnId: string, cardId: string) => {
     onChange((prevColumns) =>
       prevColumns.map((column) => {
         if (column.id !== columnId) {
@@ -67,9 +80,9 @@ function KanbanBoard({ columns, onChange }: KanbanBoardProps) {
         };
       })
     );
-  };
+  }, [onChange]);
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = useCallback(() => {
     const title = editingValue.trim();
     if (!editingCardId || !title) {
       setEditingCardId(null);
@@ -93,9 +106,21 @@ function KanbanBoard({ columns, onChange }: KanbanBoardProps) {
 
     setEditingCardId(null);
     setEditingValue('');
-  };
+  }, [editingCardId, editingValue, onChange]);
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const activeIdRaw = event.active.id;
+    if (typeof activeIdRaw !== 'string') {
+      return;
+    }
+
+    const cardId = activeIdRaw.startsWith('card:') ? activeIdRaw.slice(5) : null;
+    setActiveCardId(cardId);
+  }, []);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    setActiveCardId(null);
+
     const activeIdRaw = event.active.id;
     const overIdRaw = event.over?.id;
 
@@ -187,45 +212,77 @@ function KanbanBoard({ columns, onChange }: KanbanBoardProps) {
         return column;
       });
     });
-  };
+  }, [findColumnByCardId, onChange]);
+
+  const handleStartAdd = useCallback((columnId: string) => {
+    setAddingColumnId(columnId);
+    setAddValue('');
+  }, []);
+
+  const handleCancelAdd = useCallback(() => {
+    setAddingColumnId(null);
+    setAddValue('');
+  }, []);
+
+  const handleStartEditCard = useCallback((cardId: string, title: string) => {
+    setEditingCardId(cardId);
+    setEditingValue(title);
+  }, []);
+
+  const handleCancelEditCard = useCallback(() => {
+    setEditingCardId(null);
+    setEditingValue('');
+  }, []);
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-        {columns.map((column) => (
-          <KanbanColumn
-            key={column.id}
-            column={column}
-            colorClass={columnColorMap[column.id] ?? 'bg-slate-600'}
-            isAdding={addingColumnId === column.id}
-            addValue={addValue}
-            editingCardId={editingCardId}
-            editingValue={editingValue}
-            onStartAdd={(columnId) => {
-              setAddingColumnId(columnId);
-              setAddValue('');
-            }}
-            onAddValueChange={setAddValue}
-            onSaveAdd={handleSaveAdd}
-            onCancelAdd={() => {
-              setAddingColumnId(null);
-              setAddValue('');
-            }}
-            onStartEditCard={(cardId, title) => {
-              setEditingCardId(cardId);
-              setEditingValue(title);
-            }}
-            onEditCardValueChange={setEditingValue}
-            onSaveEditCard={handleSaveEdit}
-            onCancelEditCard={() => {
-              setEditingCardId(null);
-              setEditingValue('');
-            }}
-            onDeleteCard={handleDeleteCard}
-          />
-        ))}
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <div className="overflow-x-auto pb-1">
+        <div className="grid min-w-[280px] grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {columns.map((column) => (
+            <KanbanColumn
+              key={column.id}
+              column={column}
+              colorClass={columnColorMap[column.id] ?? 'bg-slate-600'}
+              isAdding={addingColumnId === column.id}
+              addValue={addValue}
+              editingCardId={editingCardId}
+              editingValue={editingValue}
+              onStartAdd={handleStartAdd}
+              onAddValueChange={setAddValue}
+              onSaveAdd={handleSaveAdd}
+              onCancelAdd={handleCancelAdd}
+              onStartEditCard={handleStartEditCard}
+              onEditCardValueChange={setEditingValue}
+              onSaveEditCard={handleSaveEdit}
+              onCancelEditCard={handleCancelEditCard}
+              onDeleteCard={handleDeleteCard}
+            />
+          ))}
+        </div>
       </div>
+
+      <DragOverlay>
+        {activeCard ? (
+          <KanbanDragPreview card={activeCard} />
+        ) : null}
+      </DragOverlay>
     </DndContext>
+  );
+}
+
+function KanbanDragPreview({ card }: { card: Card }) {
+  return (
+    <article
+      className={cn(
+        'w-[260px] scale-[1.03] rounded-lg border border-slate-300 bg-white p-3 opacity-90 shadow-xl',
+        'dark:border-slate-600 dark:bg-slate-900'
+      )}
+    >
+      <div className="flex items-start gap-2">
+        <span className="mt-1 h-3 w-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+        <p className="text-sm font-medium text-slate-700 dark:text-slate-100">{card.title}</p>
+      </div>
+    </article>
   );
 }
 

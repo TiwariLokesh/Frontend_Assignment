@@ -1,4 +1,4 @@
-import { NodeLocation, TreeNode } from '../types/tree';
+import type { NodeLocation, TreeNode } from '../types/tree';
 
 export function findNode(nodes: TreeNode[], id: string): TreeNode | undefined {
   for (const node of nodes) {

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import ThemeToggle from '../components/ui/ThemeToggle';
 
 const cards = [
   {
@@ -17,11 +18,14 @@ const cards = [
 
 function HomePage() {
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-8">
+    <main className="flex min-h-screen animate-fadeIn items-center justify-center px-4 py-8 sm:px-6">
       <div className="w-full max-w-5xl">
-        <div className="mb-10 text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight text-slate-800">Frontend Assignment Showcase</h1>
-          <p className="mt-3 text-base text-slate-500">Choose a project to open its fully interactive implementation.</p>
+        <div className="mb-10 flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
+          <div>
+            <h1 className="text-4xl font-extrabold tracking-tight text-slate-800 dark:text-slate-100">Frontend Assignment Showcase</h1>
+            <p className="mt-3 text-base text-slate-500 dark:text-slate-300">Choose a project to open its fully interactive implementation.</p>
+          </div>
+          <ThemeToggle />
         </div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -29,11 +33,11 @@ function HomePage() {
             <Link
               key={card.to}
               to={card.to}
-              className="group relative overflow-hidden rounded-xl shadow-lg transition duration-300 hover:scale-[1.02] hover:shadow-premium"
+              className="group relative overflow-hidden rounded-xl shadow-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-premium"
             >
               <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-95`} />
               <div className="relative rounded-xl border border-white/30 bg-white/10 p-8 backdrop-blur-sm">
-                <h2 className="text-3xl font-bold text-white">{card.title}</h2>
+                <h2 className="text-3xl font-semibold tracking-wide text-white">{card.title}</h2>
                 <p className="mt-3 text-sm text-white/90">{card.subtitle}</p>
                 <div className="mt-8 inline-flex items-center rounded-md bg-white/20 px-3 py-2 text-sm font-semibold text-white transition group-hover:bg-white/30">
                   Open Project →

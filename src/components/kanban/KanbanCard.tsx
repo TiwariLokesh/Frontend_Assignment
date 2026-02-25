@@ -1,6 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Card } from '../../types/kanban';
+import type { Card } from '../../types/kanban';
+import { cn } from '../../utils/cn';
 
 type KanbanCardProps = {
   card: Card;
@@ -36,13 +37,14 @@ function KanbanCard({
       style={style}
       {...sortable.attributes}
       {...sortable.listeners}
-      className={[
-        'rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition',
-        sortable.isDragging ? 'opacity-70 ring-2 ring-blue-300' : 'hover:shadow-md',
-      ].join(' ')}
+      className={cn(
+        'group animate-fadeIn cursor-grab rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-all duration-200 active:cursor-grabbing',
+        'hover:shadow-md dark:border-slate-700 dark:bg-slate-900',
+        sortable.isDragging && 'scale-[1.03] opacity-30 shadow-xl ring-2 ring-blue-300 dark:ring-blue-500/50'
+      )}
     >
       <div className="flex items-start gap-2">
-        <span className="mt-1 h-3 w-1 rounded-full bg-slate-300" />
+        <span className="mt-1 h-3 w-1 rounded-full bg-slate-300 dark:bg-slate-600" />
 
         <div className="flex-1">
           {isEditing ? (
@@ -60,12 +62,12 @@ function KanbanCard({
                 }
               }}
               onBlur={onSaveEdit}
-              className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm outline-none ring-blue-300 focus:ring"
+              className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm outline-none ring-blue-300 transition-all focus:ring-2 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
             />
           ) : (
             <p
               onDoubleClick={() => onStartEdit(card)}
-              className="cursor-text text-sm font-medium text-slate-700"
+              className="cursor-text text-sm font-medium text-slate-700 dark:text-slate-100"
             >
               {card.title}
             </p>
@@ -75,7 +77,7 @@ function KanbanCard({
         <button
           type="button"
           onClick={() => onDelete(card.id)}
-          className="rounded-md p-1 text-red-500 transition hover:bg-red-50"
+          className="rounded-md p-1 text-red-500 opacity-0 transition-opacity duration-200 hover:bg-red-50 group-hover:opacity-100 dark:hover:bg-red-900/40"
           title="Delete card"
         >
           🗑

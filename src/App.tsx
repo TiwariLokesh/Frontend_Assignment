@@ -5,7 +5,7 @@ import KanbanPage from './pages/KanbanPage';
 
 function App() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 transition-colors duration-300 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/tree" element={<TreePage />} />
